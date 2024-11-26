@@ -2,7 +2,9 @@ import json
 from ipaddress import IPv4Network, IPv6Network, collapse_addresses
 from typing import Any, BinaryIO
 
-from ...models import And, Not, Or, RuleSet, RuleUnit, TRule
+from ...models.complex_rule import And, Not, Or, RuleUnit, TRule
+from ...models.ip_network_list import IPv4NetworkList, IPv6NetworkList
+from ...models.rule_set import RuleSet
 
 MODE_MAP: dict[str, type[And] | type[Or]] = {
     "and": And,
@@ -22,8 +24,8 @@ def _load_rule_set(part: dict[str, Any]) -> TRule:
                 else:
                     ipv4_cidrs.append(IPv4Network(cidr))
 
-            rule.ipv4_cidrs = list(collapse_addresses(ipv4_cidrs))
-            rule.ipv6_cidrs = list(collapse_addresses(ipv6_cidrs))
+            rule.ipv4_cidrs = IPv4NetworkList(collapse_addresses(ipv4_cidrs))
+            rule.ipv6_cidrs = IPv6NetworkList(collapse_addresses(ipv6_cidrs))
 
         if "domain" in part:
             rule.domains.extend(part["domain"])

@@ -1,27 +1,23 @@
-from ipaddress import IPv4Address, IPv6Address
-from typing import Generic, TypeVar
+from ipaddress import IPv4Address, IPv6Address, _BaseAddress
+from typing import Generic, Type, TypeVar
 
-# TODO better generic
-TIpAddress = TypeVar("TIpAddress", bound=IPv4Address | IPv6Address)
+TIpAddress = TypeVar("TIpAddress", bound=_BaseAddress)
 
 
-class IPRange(Generic[TIpAddress]):
+class _BaseIpRange(Generic[TIpAddress]):
+    _ip_address_cls: Type[TIpAddress]
+
     def __init__(self) -> None:
         self.start: TIpAddress
         self.end: TIpAddress
 
     def __repr__(self) -> str:
-        return f"IPRange({self.start}, {self.end})"
+        return f"IpRange({self.start}, {self.end})"
 
     def __eq__(self, value: object) -> bool:
-        if not isinstance(value, IPRange):
+        if not isinstance(value, type(self)):
             return False
         return value.start == self.start and value.end == self.end
-
-    def extend(self, value: "IPRange[TIpAddress]"):
-        if self.end < (value.start - 1):
-            raise ValueError()
-        self.end = value.end
 
     @classmethod
     def from_address(cls, start: TIpAddress, end: TIpAddress):
@@ -31,19 +27,22 @@ class IPRange(Generic[TIpAddress]):
         return ip_range
 
     @classmethod
-    def from_packed(cls, start: bytes, end: bytes, IpAddress: type[TIpAddress]):
+    def from_packed(cls, packed: tuple[bytes, bytes]):
         ip_range = cls()
-        ip_range.start = IpAddress(start)
-        ip_range.end = IpAddress(end)
+        ip_range.start = cls._ip_address_cls(packed[0])
+        ip_range.end = cls._ip_address_cls(packed[1])
         return ip_range
 
-    def to_packed(self):
-        return self.start.packed, self.end.packed
+    def to_packed(self) -> tuple[bytes, bytes]:
+        return (self.start.packed, self.end.packed)
 
 
-class IPv4Range(IPRange[IPv4Address]):
-    pass
+class IPv4Range(_BaseIpRange[IPv4Address]):
+    _ip_address_cls = IPv4Address
 
 
-class IPv6Range(IPRange[IPv6Address]):
-    pass
+class IPv6Range(_BaseIpRange[IPv6Address]):
+    _ip_address_cls = IPv6Address
+
+
+TIpRange = TypeVar("TIpRange", bound=IPv4Range | IPv6Range)

@@ -2,7 +2,8 @@ import json
 from ipaddress import collapse_addresses
 from typing import Any, BinaryIO
 
-from ...models import And, Not, Or, RuleSet, RuleUnit, TRule
+from ...models.complex_rule import And, Not, Or, RuleUnit, TRule
+from ...models.rule_set import RuleSet
 
 MODE_MAP = {
     And: "and",

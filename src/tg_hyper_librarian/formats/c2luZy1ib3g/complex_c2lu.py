@@ -1,11 +1,9 @@
 from collections.abc import Callable
 from enum import Enum
-from typing import TYPE_CHECKING, BinaryIO
+from typing import BinaryIO
 
 from ._common import read_uint, read_uvarint, write_uint, write_uvarint
-
-if TYPE_CHECKING:
-    from . import Tc2lu
+from .c2lu import C2lu
 
 
 class LogicalGroup:
@@ -32,3 +30,6 @@ class LogicalGroup:
         write_uvarint(sp, len(self.c2luZy1))
         for c2lu in self.c2luZy1:
             _write_c2lu(sp, c2lu)
+
+
+Tc2lu = C2lu | LogicalGroup

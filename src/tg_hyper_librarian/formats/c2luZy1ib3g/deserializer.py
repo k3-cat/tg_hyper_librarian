@@ -1,18 +1,16 @@
-from ipaddress import summarize_address_range
-from typing import TYPE_CHECKING, BinaryIO
+from typing import BinaryIO
 
 from ...io.zlib_io import ZlibReaderIO
-from ...models import And, Not, Or, RuleSet, RuleUnit, TRule
+from ...models.complex_rule import And, Not, Or, RuleUnit, TRule
+from ...models.ip_network_list import IPv4NetworkList, IPv6NetworkList
+from ...models.rule_set import RuleSet
 from ._common import MAGIC, RuleType, read_uint, read_uvarint
 from .c2lu import C2lu
-from .logical_group import LogicalGroup
-
-if TYPE_CHECKING:
-    from . import Tc2lu
+from .complex_c2lu import LogicalGroup, Tc2lu
 
 
-def _read_c2lu(sp: BinaryIO) -> "Tc2lu":
-    c2lu: "Tc2lu"
+def _read_c2lu(sp: BinaryIO) -> Tc2lu:
+    c2lu: Tc2lu
     c2lu_type = RuleType(read_uint(sp))
     if c2lu_type == RuleType.REGULAR:
         c2lu = C2lu()
@@ -28,7 +26,7 @@ def _read_c2lu(sp: BinaryIO) -> "Tc2lu":
     return c2lu
 
 
-def load_from_io_full(sp: BinaryIO) -> list["Tc2lu"]:
+def load_from_io_full(sp: BinaryIO) -> list[Tc2lu]:
     magic = sp.read(3)
     if magic != MAGIC:
         raise ValueError("invalid file format")
@@ -38,18 +36,14 @@ def load_from_io_full(sp: BinaryIO) -> list["Tc2lu"]:
         return [_read_c2lu(zsp) for _ in range(length)]  # type: ignore
 
 
-def _translate_c2lu(c2lu: "Tc2lu") -> TRule:
+def _translate_c2lu(c2lu: Tc2lu) -> TRule:
     result: TRule
     if isinstance(c2lu, C2lu):
         result = RuleUnit()
         if c2lu.ipv4_ranges:
-            result.ipv4_cidrs = list(
-                cidr for ip_range in c2lu.ipv4_ranges for cidr in summarize_address_range(ip_range.start, ip_range.end)
-            )
+            result.ipv4_cidrs = IPv4NetworkList.from_ip_ranges(c2lu.ipv4_ranges)
         if c2lu.ipv6_ranges:
-            result.ipv6_cidrs = list(
-                cidr for ip_range in c2lu.ipv6_ranges for cidr in summarize_address_range(ip_range.start, ip_range.end)
-            )
+            result.ipv6_cidrs = IPv6NetworkList.from_ip_ranges(c2lu.ipv6_ranges)
         if c2lu.domains:
             domains = c2lu.domains.to_list()
             for domain in domains:

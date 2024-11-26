@@ -1,6 +1,7 @@
 from typing import BinaryIO
 
-from ..models import And, Not, RuleSet, RuleUnit
+from ..models.complex_rule import And, Not, RuleUnit
+from ..models.rule_set import RuleSet
 
 
 def parse_adguard(sp: BinaryIO) -> RuleSet:

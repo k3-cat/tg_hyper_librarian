@@ -3,7 +3,8 @@ from typing import BinaryIO
 
 import maxminddb
 
-from ..models import RuleSet, RuleUnit
+from ..models.rule_set import RuleSet
+from ..models.rule_unit import RuleUnit
 
 
 def parse_maxmind(sp: BinaryIO, country_code: str) -> RuleSet:

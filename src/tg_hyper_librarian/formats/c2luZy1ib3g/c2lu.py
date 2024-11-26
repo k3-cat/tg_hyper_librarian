@@ -1,25 +1,24 @@
 from enum import Enum
-from ipaddress import IPv4Address, IPv6Address
 from typing import BinaryIO
 
+from ...models.ip_range import IPv4Range, IPv6Range
 from ._common import read_uint, read_uvarint, read_vstring, write_uint, write_uvarint, write_vstring
-from .ip_range import IPRange, IPv4Range, IPv6Range
 from .succinct import Succinct
 
 
-def _read_uint16_item(sp: BinaryIO) -> list[int]:
+def _read_uint16_items(sp: BinaryIO) -> list[int]:
     length = read_uvarint(sp)
     values = [read_uint(sp, 2) for _ in range(length)]
     return values
 
 
-def _read_string_item(sp: BinaryIO) -> list[str]:
+def _read_string_items(sp: BinaryIO) -> list[str]:
     length = read_uvarint(sp)
     strs = [read_vstring(sp) for _ in range(length)]
     return strs
 
 
-def _read_ip_range_item(sp: BinaryIO) -> tuple[list[IPv4Range], list[IPv6Range]]:
+def _read_ip_range_items(sp: BinaryIO) -> tuple[list[IPv4Range], list[IPv6Range]]:
     _ = read_uint(sp)  # version
     length = read_uint(sp, 8)
     ipv4_ranges: list[IPv4Range] = list()
@@ -30,31 +29,31 @@ def _read_ip_range_item(sp: BinaryIO) -> tuple[list[IPv4Range], list[IPv6Range]]
         to_len = read_uvarint(sp)
         raw_to = sp.read(to_len)
         if from_len == 4:
-            ipv4_ranges.append(IPv4Range.from_packed(raw_from, raw_to, IPv4Address))
+            ipv4_ranges.append(IPv4Range.from_packed((raw_from, raw_to)))
         elif from_len == 16:
-            ipv6_ranges.append(IPv6Range.from_packed(raw_from, raw_to, IPv6Address))
+            ipv6_ranges.append(IPv6Range.from_packed((raw_from, raw_to)))
         else:
             raise ValueError("unsupported len:", from_len)
 
     return ipv4_ranges, ipv6_ranges
 
 
-def _write_uint16_item(sp: BinaryIO, item: list[int]):
-    write_uvarint(sp, len(item))
-    for val in item:
+def _write_uint16_items(sp: BinaryIO, items: list[int]):
+    write_uvarint(sp, len(items))
+    for val in items:
         write_uint(sp, val, 2)
 
 
-def _write_string_item(sp: BinaryIO, item: list[str]):
-    write_uvarint(sp, len(item))
-    for val in item:
+def _write_string_items(sp: BinaryIO, items: list[str]):
+    write_uvarint(sp, len(items))
+    for val in items:
         write_vstring(sp, val)
 
 
-def _write_ip_range_item(sp: BinaryIO, item: list[IPRange]):
+def _write_ip_range_items(sp: BinaryIO, items: list[IPv4Range | IPv6Range]):
     write_uint(sp, 1)  # version
-    write_uvarint(sp, len(item))
-    for ip_range in item:
+    write_uvarint(sp, len(items))
+    for ip_range in items:
         raw_from, raw_to = ip_range.to_packed()
         write_uvarint(sp, len(raw_from))
         sp.write(raw_from)
@@ -123,55 +122,55 @@ class C2lu:
     def _read_item(self, sp: BinaryIO) -> bool:
         item_type = C2lu.ItemType(read_uint(sp))
         if item_type == C2lu.ItemType.QUERY_TYPE:
-            self.query_types = _read_uint16_item(sp)
+            self.query_types = _read_uint16_items(sp)
 
         elif item_type == C2lu.ItemType.NETWORK:
-            self.networks = _read_string_item(sp)
+            self.networks = _read_string_items(sp)
 
         elif item_type == C2lu.ItemType.DOMAIN:
             self.domains = Succinct.read_from(sp)
 
         elif item_type == C2lu.ItemType.DOMAIN_KEYWORD:
-            self.domain_keywords = _read_string_item(sp)
+            self.domain_keywords = _read_string_items(sp)
 
         elif item_type == C2lu.ItemType.DOMAIN_REGEX:
-            self.domain_regexes = _read_string_item(sp)
+            self.domain_regexes = _read_string_items(sp)
 
         elif item_type == C2lu.ItemType.SOURCE_IP_CIDR:
-            self.source_ipv4_ranges, self.source_ipv6_ranges = _read_ip_range_item(sp)
+            self.source_ipv4_ranges, self.source_ipv6_ranges = _read_ip_range_items(sp)
 
         elif item_type == C2lu.ItemType.IP_CIDR:
-            self.ipv4_ranges, self.ipv6_ranges = _read_ip_range_item(sp)
+            self.ipv4_ranges, self.ipv6_ranges = _read_ip_range_items(sp)
 
         elif item_type == C2lu.ItemType.SOURCE_PORT:
-            self.source_ports = _read_uint16_item(sp)
+            self.source_ports = _read_uint16_items(sp)
 
         elif item_type == C2lu.ItemType.SOURCE_PORT_RANGE:
-            self.source_port_ranges = _read_string_item(sp)
+            self.source_port_ranges = _read_string_items(sp)
 
         elif item_type == C2lu.ItemType.PORT:
-            self.ports = _read_uint16_item(sp)
+            self.ports = _read_uint16_items(sp)
 
         elif item_type == C2lu.ItemType.PORT_RANGE:
-            self.port_ranges = _read_string_item(sp)
+            self.port_ranges = _read_string_items(sp)
 
         elif item_type == C2lu.ItemType.PROCESS_NAME:
-            self.process_names = _read_string_item(sp)
+            self.process_names = _read_string_items(sp)
 
         elif item_type == C2lu.ItemType.PROCESS_PATH:
-            self.process_paths = _read_string_item(sp)
+            self.process_paths = _read_string_items(sp)
 
         elif item_type == C2lu.ItemType.Process_Path_Regex:
-            self.process_path_regexes = _read_string_item(sp)
+            self.process_path_regexes = _read_string_items(sp)
 
         elif item_type == C2lu.ItemType.PACKAGE_NAME:
-            self.package_names = _read_string_item(sp)
+            self.package_names = _read_string_items(sp)
 
         elif item_type == C2lu.ItemType.WIFI_SSID:
-            self.wifi_ssids = _read_string_item(sp)
+            self.wifi_ssids = _read_string_items(sp)
 
         elif item_type == C2lu.ItemType.WIFI_BSSID:
-            self.wifi_bssids = _read_string_item(sp)
+            self.wifi_bssids = _read_string_items(sp)
 
         elif item_type == C2lu.ItemType.AdGuard_Domain:
             self.adguard_domains = Succinct.read_from(sp)
@@ -203,11 +202,11 @@ class C2lu:
     def write_to(self, sp: BinaryIO):
         if self.query_types:
             write_uint(sp, C2lu.ItemType.QUERY_TYPE.value)
-            _write_uint16_item(sp, self.query_types)
+            _write_uint16_items(sp, self.query_types)
 
         if self.networks:
             write_uint(sp, C2lu.ItemType.NETWORK.value)
-            _write_string_item(sp, self.networks)
+            _write_string_items(sp, self.networks)
 
         if self.domains:
             write_uint(sp, C2lu.ItemType.DOMAIN.value)
@@ -215,51 +214,51 @@ class C2lu:
 
         if self.domain_keywords:
             write_uint(sp, C2lu.ItemType.DOMAIN_KEYWORD.value)
-            _write_string_item(sp, self.domain_keywords)
+            _write_string_items(sp, self.domain_keywords)
 
         if self.domain_regexes:
             write_uint(sp, C2lu.ItemType.DOMAIN_REGEX.value)
-            _write_string_item(sp, self.domain_regexes)
+            _write_string_items(sp, self.domain_regexes)
 
         if self.source_ipv4_ranges or self.source_ipv6_ranges:
             write_uint(sp, C2lu.ItemType.SOURCE_IP_CIDR.value)
-            _write_ip_range_item(sp, [*self.source_ipv4_ranges, *self.source_ipv6_ranges])
+            _write_ip_range_items(sp, [*self.source_ipv4_ranges, *self.source_ipv6_ranges])
 
         if self.ipv4_ranges or self.ipv6_ranges:
             write_uint(sp, C2lu.ItemType.IP_CIDR.value)
-            _write_ip_range_item(sp, [*self.ipv4_ranges, *self.ipv6_ranges])
+            _write_ip_range_items(sp, [*self.ipv4_ranges, *self.ipv6_ranges])
 
         if self.source_ports:
             write_uint(sp, C2lu.ItemType.SOURCE_PORT.value)
-            _write_uint16_item(sp, self.source_ports)
+            _write_uint16_items(sp, self.source_ports)
 
         if self.source_port_ranges:
             write_uint(sp, C2lu.ItemType.SOURCE_PORT_RANGE.value)
-            _write_string_item(sp, self.source_port_ranges)
+            _write_string_items(sp, self.source_port_ranges)
 
         if self.ports:
             write_uint(sp, C2lu.ItemType.PORT.value)
-            _write_uint16_item(sp, self.ports)
+            _write_uint16_items(sp, self.ports)
 
         if self.port_ranges:
             write_uint(sp, C2lu.ItemType.PORT_RANGE.value)
-            _write_string_item(sp, self.port_ranges)
+            _write_string_items(sp, self.port_ranges)
 
         if self.process_names:
             write_uint(sp, C2lu.ItemType.PROCESS_NAME.value)
-            _write_string_item(sp, self.process_names)
+            _write_string_items(sp, self.process_names)
 
         if self.process_paths:
             write_uint(sp, C2lu.ItemType.PROCESS_PATH.value)
-            _write_string_item(sp, self.process_paths)
+            _write_string_items(sp, self.process_paths)
 
         if self.process_path_regexes:
             write_uint(sp, C2lu.ItemType.Process_Path_Regex.value)
-            _write_string_item(sp, self.process_path_regexes)
+            _write_string_items(sp, self.process_path_regexes)
 
         if self.package_names:
             write_uint(sp, C2lu.ItemType.PACKAGE_NAME.value)
-            _write_string_item(sp, self.package_names)
+            _write_string_items(sp, self.package_names)
 
         if self.network_type:
             write_uint(sp, C2lu.ItemType.Network_Type.value)
@@ -273,11 +272,11 @@ class C2lu:
 
         if self.wifi_ssids:
             write_uint(sp, C2lu.ItemType.WIFI_SSID.value)
-            _write_string_item(sp, self.wifi_ssids)
+            _write_string_items(sp, self.wifi_ssids)
 
         if self.wifi_bssids:
             write_uint(sp, C2lu.ItemType.WIFI_BSSID.value)
-            _write_string_item(sp, self.wifi_bssids)
+            _write_string_items(sp, self.wifi_bssids)
 
         if self.adguard_domains:
             write_uint(sp, C2lu.ItemType.AdGuard_Domain.value)

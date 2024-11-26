@@ -2,7 +2,8 @@ import math
 from ipaddress import IPv4Network, IPv6Network
 from typing import BinaryIO
 
-from ..models import RuleSet, RuleUnit
+from ..models.rule_set import RuleSet
+from ..models.rule_unit import RuleUnit
 
 
 def parse_apnic(sp: BinaryIO, country_code: str) -> RuleSet:

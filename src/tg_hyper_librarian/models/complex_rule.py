@@ -1,9 +1,6 @@
-from typing import TYPE_CHECKING, Iterator
+from typing import Iterator
 
 from .rule_unit import RuleUnit
-
-if TYPE_CHECKING:
-    from . import TRule
 
 
 class BasicLogic:
@@ -34,3 +31,6 @@ class Or(BasicLogic):
 class Not:
     def __init__(self, unit: RuleUnit) -> None:
         self.unit = unit
+
+
+TRule = RuleUnit | Not | And | Or

@@ -1,6 +1,7 @@
 from typing import BinaryIO
 
-from ..models import RuleSet, RuleUnit
+from ..models.rule_set import RuleSet
+from ..models.rule_unit import RuleUnit
 
 
 def parse_hosts(sp: BinaryIO) -> RuleSet:

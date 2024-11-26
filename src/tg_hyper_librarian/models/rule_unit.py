@@ -1,10 +1,10 @@
-from ipaddress import IPv4Network, IPv6Network
+from .ip_network_list import IPv4NetworkList, IPv6NetworkList
 
 
 class RuleUnit:
     def __init__(self) -> None:
-        self.ipv4_cidrs: list[IPv4Network] = list()
-        self.ipv6_cidrs: list[IPv6Network] = list()
+        self.ipv4_cidrs: IPv4NetworkList = IPv4NetworkList()
+        self.ipv6_cidrs: IPv6NetworkList = IPv6NetworkList()
         self.domains: list[str] = list()
         self.domain_suffixes: list[str] = list()
         self.domain_keywords: list[str] = list()
