@@ -80,7 +80,18 @@ class C2lu:
         PACKAGE_NAME = 13
         WIFI_SSID = 14
         WIFI_BSSID = 15
+        AdGuard_Domain = 16
+        Process_Path_Regex = 17
+        Network_Type = 18
+        Network_Is_Expensive = 19
+        Network_Is_Constrained = 20
         Final = 0xFF
+
+    class NetworkType(Enum):
+        WIFI = 0
+        Cellular = 1
+        Ethernet = 2
+        Other = 3
 
     def __init__(self) -> None:
         self.invert = False
@@ -100,9 +111,14 @@ class C2lu:
         self.port_ranges: list[str] | None = None
         self.process_names: list[str] | None = None
         self.process_paths: list[str] | None = None
+        self.process_path_regexes: list[str] | None = None
         self.package_names: list[str] | None = None
+        self.network_type: C2lu.NetworkType | None = None
+        self.network_is_expensive: bool = False
+        self.network_is_constrained: bool = False
         self.wifi_ssids: list[str] | None = None
         self.wifi_bssids: list[str] | None = None
+        self.adguard_domains: Succinct | None = None
 
     def _read_item(self, sp: BinaryIO) -> bool:
         item_type = C2lu.ItemType(read_uint(sp))
@@ -145,6 +161,9 @@ class C2lu:
         elif item_type == C2lu.ItemType.PROCESS_PATH:
             self.process_paths = _read_string_item(sp)
 
+        elif item_type == C2lu.ItemType.Process_Path_Regex:
+            self.process_path_regexes = _read_string_item(sp)
+
         elif item_type == C2lu.ItemType.PACKAGE_NAME:
             self.package_names = _read_string_item(sp)
 
@@ -153,6 +172,18 @@ class C2lu:
 
         elif item_type == C2lu.ItemType.WIFI_BSSID:
             self.wifi_bssids = _read_string_item(sp)
+
+        elif item_type == C2lu.ItemType.AdGuard_Domain:
+            self.adguard_domains = Succinct.read_from(sp)
+
+        elif item_type == C2lu.ItemType.Network_Type:
+            self.network_type = C2lu.NetworkType(read_uvarint(sp))
+
+        elif item_type == C2lu.ItemType.Network_Is_Expensive:
+            self.network_is_expensive = True
+
+        elif item_type == C2lu.ItemType.Network_Is_Constrained:
+            self.network_is_constrained = True
 
         elif item_type == C2lu.ItemType.Final:
             self.invert = sp.read(1)[0] != 0
@@ -222,9 +253,23 @@ class C2lu:
             write_uint(sp, C2lu.ItemType.PROCESS_PATH.value)
             _write_string_item(sp, self.process_paths)
 
+        if self.process_path_regexes:
+            write_uint(sp, C2lu.ItemType.Process_Path_Regex.value)
+            _write_string_item(sp, self.process_path_regexes)
+
         if self.package_names:
             write_uint(sp, C2lu.ItemType.PACKAGE_NAME.value)
             _write_string_item(sp, self.package_names)
+
+        if self.network_type:
+            write_uint(sp, C2lu.ItemType.Network_Type.value)
+            write_uvarint(sp, self.network_type.value)
+
+        if self.network_is_expensive:
+            write_uint(sp, C2lu.ItemType.Network_Is_Expensive.value)
+
+        if self.network_is_constrained:
+            write_uint(sp, C2lu.ItemType.Network_Is_Constrained.value)
 
         if self.wifi_ssids:
             write_uint(sp, C2lu.ItemType.WIFI_SSID.value)
@@ -233,6 +278,10 @@ class C2lu:
         if self.wifi_bssids:
             write_uint(sp, C2lu.ItemType.WIFI_BSSID.value)
             _write_string_item(sp, self.wifi_bssids)
+
+        if self.adguard_domains:
+            write_uint(sp, C2lu.ItemType.AdGuard_Domain.value)
+            self.adguard_domains.write_to(sp)
 
         write_uint(sp, C2lu.ItemType.Final.value)
         write_uint(sp, 0x01 if self.invert else 0x00)
