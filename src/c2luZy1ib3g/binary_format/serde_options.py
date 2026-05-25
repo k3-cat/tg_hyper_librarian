@@ -12,11 +12,17 @@ from typing import (
 import asyncstdlib as a
 
 from c2luZy1ib3g.binary_format.enum_like_types import load_network_type
+from c2luZy1ib3g.binary_format.network_interface import (
+    dump_network_interfaces,
+    load_network_interfaces,
+)
 from c2luZy1ib3g.serdes import (
+    dump_ip_cidr_list,
     dump_string_list,
     dump_succinct,
     dump_uint,
     dump_uint16_list,
+    load_ip_cidr_list,
     load_string_list,
     load_succinct,
     load_uint16_list,
@@ -58,7 +64,11 @@ SER_DE_MAP = {
     "list[int]": SerDePair(load_uint16_list, dump_uint16_list),
     "list[str]": SerDePair(load_string_list, dump_string_list),
     _type2str(Type["Succinct | None"]): SerDePair(load_succinct, dump_succinct),
+    _type2str(Type["IPCidrList"]): SerDePair(load_ip_cidr_list, dump_ip_cidr_list),
     _type2str(Type["SimpleC2lu.NetworkType | None"]): SerDePair(load_network_type, dump_uint),
+    _type2str(Type["dict[SimpleC2lu.NetworkType, IPCidrList]"]): SerDePair(
+        load_network_interfaces, dump_network_interfaces
+    ),
 }
 
 
