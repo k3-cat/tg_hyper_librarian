@@ -1,13 +1,16 @@
 {
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true,
-    "cSpell.words": [
-        "adguard",
-        "apnic",
-        "BSSID",
-        "dnsmasq",
-        "maxmind",
-        "uvarint",
-        "vstring"
-    ]
+  "cSpell.words": [
+    "aiocsv",
+    "aiofile",
+    "apnic",
+    "BSSID",
+    "dnsmasq",
+    "itor",
+    "pcdn",
+    "serde",
+    "uvarint",
+    "vstring"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
 }

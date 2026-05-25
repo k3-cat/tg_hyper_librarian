@@ -1,0 +1,33 @@
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import os
+    from typing import Literal, Protocol, Self, Sized, TypeAlias
+
+    from typing_extensions import Buffer
+
+    AsyncReadOnlyBuffer: TypeAlias = Buffer  # stable
+    AsyncWriteableBuffer: TypeAlias = Buffer
+    AsyncReadableBuffer: TypeAlias = Buffer  # stable
+
+    class BufferLike[T: Sized](Sized, Buffer, Protocol):
+        def __add__(self, val: T | Self, /) -> Self: ...
+        def __getitem__(self, key, /) -> T: ...
+        def __delitem__(self, key, /) -> None: ...
+        def clear(self) -> None: ...
+
+    class SupportsAsyncRead[T](Protocol):
+        async def read(self, size: int = ..., /) -> T: ...
+
+    class SupportsAsyncReadline[T](Protocol):
+        async def readline(self, size: int = ..., /) -> T: ...
+
+    class SupportsAsyncWrite[T, R = int](Protocol):
+        async def write(self, s: T, /) -> R: ...
+
+        async def truncate(self, size: int | None = None) -> int: ...
+
+    class SupportsAsyncSeek(Protocol):
+        async def seek(self, pos: int, whence: Literal[0, 1, 2] = os.SEEK_SET, /) -> int: ...
+
+        def tell(self) -> int: ...
